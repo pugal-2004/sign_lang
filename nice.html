@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Language Teacher</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1400px;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .canvas-section {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 600px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .info-section {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .category-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .category-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .category-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .category-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .current-item {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .current-item h2 {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .description {
+            font-size: 16px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .navigation {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #764ba2;
+        }
+
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .counter {
+            text-align: center;
+            color: #999;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .back-btn {
+            padding: 10px 20px;
+            background: #999;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: #666;
+        }
+
+        .category-view {
+            display: none;
+        }
+
+        .category-view.active {
+            display: block;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .item-btn {
+            padding: 15px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .item-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .item-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .canvas-section {
+                min-height: 400px;
+            }
+            .items-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-section">
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div class="info-section">
+            <div class="header">
+                <h1>Sign Language Teacher</h1>
+            </div>
+
+            <div id="mainView">
+                <div class="category-selector">
+                    <button class="category-btn active" onclick="selectCategory('letters')">📝 Letters</button>
+                    <button class="category-btn" onclick="selectCategory('animals')">🦁 Animals</button>
+                    <button class="category-btn" onclick="selectCategory('words')">💬 Words</button>
+                </div>
+
+                <div id="lettersView" class="category-view active">
+                    <div class="items-grid" id="lettersGrid"></div>
+                </div>
+
+                <div id="animalsView" class="category-view">
+                    <div class="items-grid" id="animalsGrid"></div>
+                </div>
+
+                <div id="wordsView" class="category-view">
+                    <div class="items-grid" id="wordsGrid"></div>
+                </div>
+            </div>
+
+            <div id="itemView" style="display: none;">
+                <button class="back-btn" onclick="backToCategory()">← Back</button>
+                <div class="current-item">
+                    <h2 id="itemTitle"></h2>
+                    <div class="description" id="itemDesc"></div>
+                </div>
+                <div class="navigation">
+                    <button class="nav-btn" id="prevBtn" onclick="previousItem()">← Previous</button>
+                    <button class="nav-btn" id="nextBtn" onclick="nextItem()">Next →</button>
+                </div>
+                <div class="counter" id="counter"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const data = {
+            letters: [
+                { text: 'A', description: 'Make a fist with your hand' },
+                { text: 'B', description: 'Keep fingers together and extended' },
+                { text: 'C', description: 'Curve your hand like a "C" shape' },
+                { text: 'D', description: 'Point finger up, other fingers curled' },
+                { text: 'E', description: 'Curl all fingers inward' },
+                { text: 'F', description: 'Connect thumb and index finger' },
+                { text: 'G', description: 'Extend index and middle finger' },
+                { text: 'H', description: 'Index and middle extended, side by side' },
+                { text: 'I', description: 'Extend only your pinky finger' },
+                { text: 'J', description: 'Make hook shape with pinky finger' },
+                { text: 'K', description: 'Thumb between index and middle' },
+                { text: 'L', description: 'Extend thumb and index finger' },
+                { text: 'M', description: 'Thumb under three middle fingers' },
+                { text: 'N', description: 'Thumb under two middle fingers' },
+                { text: 'O', description: 'Touch all fingertips together' },
+                { text: 'P', description: 'Similar to K but index down' },
+                { text: 'Q', description: 'Similar to J but with thumb' },
+                { text: 'R', description: 'Cross index over middle finger' },
+                { text: 'S', description: 'Make a fist with thumb on side' },
+                { text: 'T', description: 'Thumb between index and middle' },
+                { text: 'U', description: 'Extend middle and ring finger' },
+                { text: 'V', description: 'Extend index and middle finger in V' },
+                { text: 'W', description: 'Extend middle, ring, and pinky' },
+                { text: 'X', description: 'Make hook shape with index' },
+                { text: 'Y', description: 'Extend thumb and pinky finger' },
+                { text: 'Z', description: 'Draw Z shape with index finger' },
+            ],
+            animals: [
+                { name: 'Cat', description: 'Make claws with both hands near face' },
+                { name: 'Dog', description: 'Tap leg and make panting motion' },
+                { name: 'Bird', description: 'Make beak with fingers near mouth' },
+                { name: 'Fish', description: 'Wave hand like a fish tail' },
+                { name: 'Monkey', description: 'Scratch armpits with both hands' },
+                { name: 'Lion', description: 'Put hands around face like mane' },
+                { name: 'Elephant', description: 'Swing arm down like trunk' },
+                { name: 'Bear', description: 'Make claws and hug yourself' },
+                { name: 'Rabbit', description: 'Hold up two fingers like ears' },
+                { name: 'Snake', description: 'Slither hand like a snake' },
+                { name: 'Butterfly', description: 'Cross hands and flap like wings' },
+                { name: 'Bee', description: 'Move finger in buzzing pattern' },
+            ],
+            words: [
+                { word: 'Hello', description: 'Wave hand with open palm' },
+                { word: 'Thank you', description: 'Touch fingers to chin, move hand forward' },
+                { word: 'Please', description: 'Rub hand on chest in circle' },
+                { word: 'Yes', description: 'Nod your fist up and down' },
+                { word: 'No', description: 'Shake two fingers side to side' },
+                { word: 'Love', description: 'Cross both hands over heart' },
+                { word: 'Good', description: 'Touch fingers to lips, move hand out' },
+                { word: 'Bad', description: 'Touch fingers to lips, turn hand down' },
+                { word: 'Water', description: 'Make W shape and touch mouth' },
+                { word: 'Food', description: 'Touch fingers to mouth repeatedly' },
+                { word: 'Sleep', description: 'Tilt head and rest cheek on hand' },
+                { word: 'Happy', description: 'Brush hands up face with smile' },
+            ]
+        };
+
+        let scene, camera, renderer, hand;
+        let fingerBones = {};
+        let currentCategory = 'letters';
+        let currentIndex = 0;
+        let isDetailView = false;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x667eea);
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 2.5;
+
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+            renderer.setSize(window.innerWidth * 0.5, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            const light1 = new THREE.DirectionalLight(0xffffff, 0.9);
+            light1.position.set(5, 5, 5);
+            scene.add(light1);
+
+            const light2 = new THREE.DirectionalLight(0xffffff, 0.5);
+            light2.position.set(-5, -5, 3);
+            scene.add(light2);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            createHand();
+            animate();
+        }
+
+        function createHand() {
+            hand = new THREE.Group();
+            const skinColor = 0xd4a574;
+            const skinMaterial = new THREE.MeshPhongMaterial({ 
+                color: skinColor,
+                shininess: 70,
+                flatShading: false
+            });
+
+            // Palm - main body with proper shape
+            const palmGeometry = new THREE.BoxGeometry(0.9, 1.1, 0.25);
+            const palm = new THREE.Mesh(palmGeometry, skinMaterial);
+            palm.position.z = 0;
+            hand.add(palm);
+
+            // Palm ridge details
+            const palmRidge = new THREE.BoxGeometry(0.85, 0.1, 0.27);
+            const ridge = new THREE.Mesh(palmRidge, new THREE.MeshPhongMaterial({ color: 0xc99564 }));
+            ridge.position.set(0, 0.35, 0);
+            hand.add(ridge);
+
+            // Create fingers with visible segments
+            fingerBones = {
+                thumb: createFinger(-0.35, -0.25, 0.3, 0.11, skinMaterial, true),
+                index: createFinger(-0.2, 0.45, 0.42, 0.12, skinMaterial),
+                middle: createFinger(-0.05, 0.6, 0.48, 0.12, skinMaterial),
+                ring: createFinger(0.2, 0.45, 0.42, 0.12, skinMaterial),
+                pinky: createFinger(0.35, 0.3, 0.35, 0.1, skinMaterial)
+            };
+
+            Object.keys(fingerBones).forEach(finger => {
+                hand.add(fingerBones[finger].group);
+            });
+
+            scene.add(hand);
+        }
+
+        function createFinger(xPos, yPos, length, width, material, isThumb = false) {
+            const fingerGroup = new THREE.Group();
+            
+            const boneLength = length / 3;
+            const bones = [];
+            
+            // Create 3 bone segments
+            for (let i = 0; i < 3; i++) {
+                const boneContainer = new THREE.Group();
+                
+                // Main bone box
+                const boneGeometry = new THREE.BoxGeometry(width, boneLength * 0.9, width * 0.9);
+                const bone = new THREE.Mesh(boneGeometry, material);
+                boneContainer.add(bone);
+
+                // Joint line - darker color to show segments
+                const jointGeometry = new THREE.BoxGeometry(width * 1.1, 0.08, width * 1.05);
+                const jointMat = new THREE.MeshPhongMaterial({ color: 0xb88a5f });
+                const joint = new THREE.Mesh(jointGeometry, jointMat);
+                joint.position.y = boneLength * 0.45;
+                boneContainer.add(joint);
+
+                // Fingernail on last bone
+                if (i === 2) {
+                    const nailGeometry = new THREE.BoxGeometry(width * 0.8, boneLength * 0.4, width * 1.1);
+                    const nailMat = new THREE.MeshPhongMaterial({ 
+                        color: 0xf0d9c8,
+                        shininess: 100
+                    });
+                    const nail = new THREE.Mesh(nailGeometry, nailMat);
+                    nail.position.y = boneLength * 0.7;
+                    boneContainer.add(nail);
+                }
+
+                boneContainer.position.y = i * boneLength;
+                fingerGroup.add(boneContainer);
+                bones.push(boneContainer);
+            }
+
+            const fingerWrapper = new THREE.Group();
+            fingerWrapper.add(fingerGroup);
+            fingerWrapper.position.set(xPos, yPos, 0);
+
+            if (isThumb) {
+                fingerWrapper.rotation.z = -0.4;
+                fingerWrapper.position.z = -0.1;
+            }
+
+            return { group: fingerWrapper, bones: bones, wrapper: fingerGroup };
+        }
+
+        function updateHandPose(letter) {
+            if (!hand) return;
+
+            // Reset all fingers
+            Object.keys(fingerBones).forEach(finger => {
+                fingerBones[finger].wrapper.rotation.set(0, 0, 0);
+            });
+            hand.rotation.set(0, 0, 0);
+
+            const poses = {
+                'A': () => {
+                    ['index', 'middle', 'ring', 'pinky'].forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = 1.3;
+                    });
+                    fingerBones['thumb'].wrapper.rotation.z = 0.2;
+                },
+                'B': () => {
+                    ['index', 'middle', 'ring', 'pinky'].forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = -0.1;
+                    });
+                    fingerBones['thumb'].wrapper.rotation.z = -0.3;
+                },
+                'C': () => {
+                    hand.rotation.z = 0.3;
+                    fingerBones['thumb'].wrapper.rotation.z = 0.5;
+                    fingerBones['index'].wrapper.rotation.x = 0.6;
+                    fingerBones['middle'].wrapper.rotation.x = 0.5;
+                    fingerBones['ring'].wrapper.rotation.x = 0.5;
+                    fingerBones['pinky'].wrapper.rotation.x = 0.7;
+                },
+                'D': () => {
+                    fingerBones['index'].wrapper.rotation.x = -0.7;
+                    ['middle', 'ring', 'pinky'].forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = 1.2;
+                    });
+                    fingerBones['thumb'].wrapper.rotation.z = 0.5;
+                },
+                'E': () => {
+                    Object.keys(fingerBones).forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = 1.4;
+                    });
+                },
+                'F': () => {
+                    fingerBones['thumb'].wrapper.rotation.z = 0.3;
+                    fingerBones['index'].wrapper.rotation.x = 0.8;
+                    ['middle', 'ring', 'pinky'].forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = -0.5;
+                    });
+                },
+                'G': () => {
+                    fingerBones['index'].wrapper.rotation.x = -0.6;
+                    fingerBones['middle'].wrapper.rotation.x = -0.6;
+                    fingerBones['thumb'].wrapper.rotation.z = -0.1;
+                    ['ring', 'pinky'].forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = 1.1;
+                    });
+                },
+                'I': () => {
+                    fingerBones['pinky'].wrapper.rotation.x = -0.6;
+                    ['index', 'middle', 'ring'].forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = 1.1;
+                    });
+                    fingerBones['thumb'].wrapper.rotation.z = 0.5;
+                },
+                'L': () => {
+                    fingerBones['thumb'].wrapper.rotation.z = -0.2;
+                    fingerBones['index'].wrapper.rotation.x = -0.7;
+                    ['middle', 'ring', 'pinky'].forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = 1.2;
+                    });
+                },
+                'O': () => {
+                    Object.keys(fingerBones).forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = 1.5;
+                        fingerBones[f].wrapper.rotation.z = 0.1;
+                    });
+                },
+                'V': () => {
+                    fingerBones['index'].wrapper.rotation.x = -0.5;
+                    fingerBones['index'].wrapper.rotation.z = -0.25;
+                    fingerBones['middle'].wrapper.rotation.x = -0.5;
+                    fingerBones['middle'].wrapper.rotation.z = 0.25;
+                    ['ring', 'pinky'].forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = 1.1;
+                    });
+                },
+                'W': () => {
+                    fingerBones['middle'].wrapper.rotation.x = -0.5;
+                    fingerBones['ring'].wrapper.rotation.x = -0.5;
+                    fingerBones['pinky'].wrapper.rotation.x = -0.5;
+                    fingerBones['index'].wrapper.rotation.x = 0.9;
+                },
+                'Y': () => {
+                    fingerBones['thumb'].wrapper.rotation.z = 0.3;
+                    fingerBones['pinky'].wrapper.rotation.x = -0.5;
+                    ['index', 'middle', 'ring'].forEach(f => {
+                        fingerBones[f].wrapper.rotation.x = 1.1;
+                    });
+                },
+            };
+
+            if (poses[letter]) poses[letter]();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (hand && !isDragging && !isDetailView) {
+                hand.rotation.y = Math.sin(Date.now() * 0.001) * 0.4;
+            }
+            renderer.render(scene, camera);
+        }
+
+        function selectCategory(cat) {
+            currentCategory = cat;
+            currentIndex = 0;
+            isDetailView = false;
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.category-view').forEach(v => v.classList.remove('active'));
+            document.getElementById(cat + 'View').classList.add('active');
+            renderItems();
+        }
+
+        function renderItems() {
+            const items = data[currentCategory];
+            const gridId = currentCategory + 'Grid';
+            const grid = document.getElementById(gridId);
+            grid.innerHTML = '';
+
+            items.forEach((item, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'item-btn';
+                btn.textContent = item.text || item.name || item.word;
+                btn.onclick = () => selectItem(idx);
+                grid.appendChild(btn);
+            });
+        }
+
+        function selectItem(idx) {
+            currentIndex = idx;
+            isDetailView = true;
+            document.getElementById('mainView').style.display = 'none';
+            document.getElementById('itemView').style.display = 'block';
+            updateItemDisplay();
+            updateHandPose(getItemTitle());
+        }
+
+        function getItemTitle() {
+            const item = data[currentCategory][currentIndex];
+            return item.text || item.name || item.word;
+        }
+
+        function updateItemDisplay() {
+            const item = data[currentCategory][currentIndex];
+            document.getElementById('itemTitle').textContent = getItemTitle();
+            document.getElementById('itemDesc').textContent = item.description || 'Watch the model demonstrate this sign.';
+            document.getElementById('counter').textContent = `${currentIndex + 1} / ${data[currentCategory].length}`;
+            document.getElementById('prevBtn').disabled = currentIndex === 0;
+            document.getElementById('nextBtn').disabled = currentIndex === data[currentCategory].length - 1;
+        }
+
+        function previousItem() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateItemDisplay();
+                updateHandPose(getItemTitle());
+            }
+        }
+
+        function nextItem() {
+            if (currentIndex < data[currentCategory].length - 1) {
+                currentIndex++;
+                updateItemDisplay();
+                updateHandPose(getItemTitle());
+            }
+        }
+
+        function backToCategory() {
+            isDetailView = false;
+            document.getElementById('mainView').style.display = 'block';
+            document.getElementById('itemView').style.display = 'none';
+            renderItems();
+        }
+
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth * 0.5;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+
+        const canvas = document.getElementById('canvas');
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging && hand) {
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                hand.rotation.y += deltaX * 0.01;
+                hand.rotation.x += deltaY * 0.01;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
+
+        initThreeJS();
+        renderItems();
+    </script>
+</body>
+</html>

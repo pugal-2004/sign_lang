@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Language Teacher</title>
+    <script async src="https://cdnjs.cloudflare.com/ajax/libs/opencv.js/4.5.2/opencv.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1400px;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .canvas-section {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 600px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-section {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .view-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .view-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .view-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .view-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .learn-view {
+            display: none;
+        }
+
+        .learn-view.active {
+            display: block;
+        }
+
+        .test-view {
+            display: none;
+        }
+
+        .test-view.active {
+            display: block;
+        }
+
+        .category-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .category-btn {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .category-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .item-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .item-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .test-menu {
+            display: flex;
+            gap: 15px;
+            flex-direction: column;
+        }
+
+        .test-start-btn {
+            padding: 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .test-start-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .question-display {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            border: 3px solid #667eea;
+            margin-bottom: 20px;
+        }
+
+        .question-text {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .sign-display {
+            font-size: 60px;
+            color: #667eea;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .camera-feed {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+            margin-top: 15px;
+        }
+
+        .timer {
+            font-size: 18px;
+            color: #667eea;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #764ba2;
+        }
+
+        .btn-secondary {
+            background: #999;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #666;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .results-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid #667eea;
+        }
+
+        .results-score {
+            font-size: 48px;
+            color: #667eea;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .results-message {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .results-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .result-correct {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .result-incorrect {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .recognition-status {
+            padding: 15px;
+            background: #f0f4ff;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+            min-height: 40px;
+            border: 2px solid #667eea;
+        }
+
+        .status-text {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-section">
+            <video id="video" autoplay playsinline style="display:none; width:320px; height:240px;"></video>
+            <canvas id="canvas" style="display:none;"></canvas>
+            <canvas id="displayCanvas" width="400" height="300" style="border-radius: 8px; border: 2px solid white; max-width: 100%;"></canvas>
+        </div>
+        
+        <div class="info-section">
+            <div class="header">
+                <h1>Sign Language Teacher</h1>
+            </div>
+
+            <div class="view-selector">
+                <button class="view-btn active" onclick="switchView('learn')">Learn</button>
+                <button class="view-btn" onclick="switchView('test')">Test with Hand</button>
+            </div>
+
+            <div class="learn-view active">
+                <div class="category-selector">
+                    <button class="category-btn active" onclick="selectCategory('letters')">Letters</button>
+                    <button class="category-btn" onclick="selectCategory('animals')">Animals</button>
+                    <button class="category-btn" onclick="selectCategory('words')">Words</button>
+                </div>
+                <div class="items-grid" id="itemsGrid"></div>
+            </div>
+
+            <div class="test-view">
+                <div id="testMenu" class="test-menu">
+                    <button class="test-start-btn" onclick="startTest('letters')">Test Letters (5 questions)</button>
+                    <button class="test-start-btn" onclick="startTest('animals')">Test Animals (5 questions)</button>
+                    <button class="test-start-btn" onclick="startTest('words')">Test Words (5 questions)</button>
+                </div>
+
+                <div id="testQuestions" style="display:none;">
+                    <div class="question-display">
+                        <div class="question-text">Question <span id="questionNum">1</span> of <span id="totalQuestions">5</span></div>
+                        <div>Make this sign:</div>
+                        <div class="sign-display" id="signDisplay">A</div>
+                        <div class="timer">Time remaining: <span id="timer">10</span>s</div>
+                        <div id="recognitionStatus" class="recognition-status">
+                            <div class="status-text">Waiting for hand gesture...</div>
+                        </div>
+                    </div>
+                    <div class="test-controls">
+                        <button class="btn btn-secondary" onclick="skipQuestion()">Skip</button>
+                        <button class="btn btn-primary" onclick="submitAnswer()">Submit</button>
+                    </div>
+                </div>
+
+                <div id="testResults" style="display:none;">
+                    <div class="results-card">
+                        <h2>Test Results</h2>
+                        <div class="results-score"><span id="finalScore">0</span>/<span id="totalScore">5</span></div>
+                        <div style="font-size: 28px; color: #667eea; font-weight: bold; margin-bottom: 20px;"><span id="percentage">0</span>%</div>
+                        <div class="results-message" id="resultMessage">Great job!</div>
+                        <div class="results-details" id="resultDetails"></div>
+                        <button class="btn btn-primary" onclick="restartTest()" style="margin-top: 20px;">Take Another Test</button>
+                        <button class="btn btn-secondary" onclick="switchView('learn')" style="margin-top: 10px;">Back to Learn</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const data = {
+            letters: [
+                { text: 'A', description: 'Make a fist' },
+                { text: 'B', description: 'Flat hand' },
+                { text: 'C', description: 'C shape' },
+                { text: 'D', description: 'Point up' },
+                { text: 'E', description: 'Closed fist' },
+                { text: 'F', description: 'Thumb and index' },
+                { text: 'G', description: 'Point to side' },
+                { text: 'H', description: 'Two fingers' },
+                { text: 'I', description: 'Pinky out' },
+                { text: 'J', description: 'Hook shape' },
+            ],
+            animals: [
+                { name: 'Cat', description: 'Make claws' },
+                { name: 'Dog', description: 'Tap and pant' },
+                { name: 'Bird', description: 'Make beak' },
+                { name: 'Fish', description: 'Wave tail' },
+                { name: 'Monkey', description: 'Scratch armpits' },
+            ],
+            words: [
+                { word: 'Hello', description: 'Wave hand' },
+                { word: 'Thank you', description: 'Chin to forward' },
+                { word: 'Please', description: 'Rub chest' },
+                { word: 'Yes', description: 'Nod fist' },
+                { word: 'No', description: 'Shake fingers' },
+            ]
+        };
+
+        let currentView = 'learn';
+        let currentCategory = 'letters';
+        let testMode = null;
+        let testQuestions = [];
+        let testAnswers = [];
+        let currentQuestion = 0;
+        let timeRemaining = 10;
+        let timerInterval = null;
+        let detectedSign = null;
+        let video, canvas, ctx;
+        let handDetector = null;
+
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (view === 'learn') {
+                document.querySelector('.learn-view').classList.add('active');
+                document.querySelector('.test-view').classList.remove('active');
+                selectCategory(currentCategory);
+            } else {
+                document.querySelector('.learn-view').classList.remove('active');
+                document.querySelector('.test-view').classList.add('active');
+                document.getElementById('testMenu').style.display = 'block';
+                document.getElementById('testQuestions').style.display = 'none';
+                document.getElementById('testResults').style.display = 'none';
+                initializeCamera();
+            }
+        }
+
+        function selectCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+
+            const items = data[cat];
+            const grid = document.getElementById('itemsGrid');
+            grid.innerHTML = '';
+
+            items.forEach(item => {
+                const label = item.text || item.name || item.word;
+                const btn = document.createElement('button');
+                btn.className = 'item-btn';
+                btn.textContent = label;
+                grid.appendChild(btn);
+            });
+        }
+
+        function initializeCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Camera not supported');
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } })
+                .then(stream => {
+                    video = document.getElementById('video');
+                    video.srcObject = stream;
+                    canvas = document.getElementById('canvas');
+                    ctx = canvas.getContext('2d');
+                    processCamera();
+                })
+                .catch(err => console.error('Camera error:', err));
+        }
+
+        function processCamera() {
+            if (!video || !video.srcObject) return;
+
+            const displayCanvas = document.getElementById('displayCanvas');
+            const displayCtx = displayCanvas.getContext('2d');
+
+            function drawFrame() {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                displayCtx.drawImage(canvas, 0, 0, 400, 300);
+
+                // Simple hand detection based on skin color
+                detectHand();
+                requestAnimationFrame(drawFrame);
+            }
+
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                drawFrame();
+            };
+        }
+
+        function detectHand() {
+            if (!canvas || canvas.width === 0) return;
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            let handPixels = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                // Skin color detection (simplified)
+                if (r > 95 && g > 40 && b > 20 &&
+                    r > g && r > b &&
+                    Math.abs(r - g) > 15) {
+                    handPixels++;
+                    data[i + 3] = 200;
+                } else {
+                    data[i + 3] = 50;
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+
+            // Estimate sign based on hand area
+            if (currentView === 'test' && testMode && currentQuestion < testQuestions.length) {
+                const handRatio = handPixels / (canvas.width * canvas.height);
+                recognizeSign(handRatio);
+            }
+        }
+
+        function recognizeSign(handRatio) {
+            const statusDiv = document.getElementById('recognitionStatus');
+            if (!statusDiv) return;
+
+            let sign = null;
+
+            if (handRatio > 0.15) {
+                sign = 'Closed Fist';
+            } else if (handRatio > 0.08) {
+                sign = 'Open Hand';
+            } else if (handRatio > 0.04) {
+                sign = 'Partial Hand';
+            }
+
+            if (sign) {
+                detectedSign = sign;
+                statusDiv.innerHTML = `<div class="status-text">Detected: ${sign}</div>`;
+            }
+        }
+
+        function startTest(category) {
+            testMode = category;
+            testQuestions = data[category].slice(0, 5);
+            testAnswers = [];
+            currentQuestion = 0;
+
+            document.getElementById('testMenu').style.display = 'none';
+            document.getElementById('testQuestions').style.display = 'block';
+            document.getElementById('totalQuestions').textContent = testQuestions.length;
+
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQuestion >= testQuestions.length) {
+                showResults();
+                return;
+            }
+
+            const question = testQuestions[currentQuestion];
+            const label = question.text || question.name || question.word;
+
+            document.getElementById('questionNum').textContent = currentQuestion + 1;
+            document.getElementById('signDisplay').textContent = label;
+            document.getElementById('recognitionStatus').innerHTML = '<div class="status-text">Make the sign and click Submit</div>';
+
+            detectedSign = null;
+            timeRemaining = 10;
+            startTimer();
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                document.getElementById('timer').textContent = timeRemaining;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    submitAnswer();
+                }
+            }, 1000);
+        }
+
+        function submitAnswer() {
+            clearInterval(timerInterval);
+
+            const question = testQuestions[currentQuestion];
+            const label = question.text || question.name || question.word;
+
+            // Simplified: detect if hand gesture was made
+            const isCorrect = detectedSign !== null && (
+                (label.includes('A') && detectedSign === 'Closed Fist') ||
+                (label.includes('B') && detectedSign === 'Open Hand') ||
+                detectedSign === 'Open Hand' || detectedSign === 'Partial Hand'
+            );
+
+            testAnswers.push({
+                question: label,
+                detected: detectedSign || 'No gesture',
+                correct: isCorrect
+            });
+
+            currentQuestion++;
+            if (currentQuestion < testQuestions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function skipQuestion() {
+            clearInterval(timerInterval);
+            testAnswers.push({
+                question: testQuestions[currentQuestion].text || testQuestions[currentQuestion].name || testQuestions[currentQuestion].word,
+                detected: 'Skipped',
+                correct: false
+            });
+
+            currentQuestion++;
+            if (currentQuestion < testQuestions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            clearInterval(timerInterval);
+            document.getElementById('testQuestions').style.display = 'none';
+            document.getElementById('testResults').style.display = 'block';
+
+            const correct = testAnswers.filter(a => a.correct).length;
+            const total = testAnswers.length;
+            const percentage = Math.round((correct / total) * 100);
+
+            document.getElementById('finalScore').textContent = correct;
+            document.getElementById('totalScore').textContent = total;
+            document.getElementById('percentage').textContent = percentage;
+
+            let message = '';
+            if (percentage === 100) {
+                message = 'Perfect! Excellent work! 🌟';
+            } else if (percentage >= 80) {
+                message = 'Great job! Keep practicing! 👍';
+            } else if (percentage >= 60) {
+                message = 'Good effort! Review and try again! 💪';
+            } else if (percentage >= 40) {
+                message = 'Keep learning! 📚';
+            } else {
+                message = 'Practice more signs! 🎓';
+            }
+
+            document.getElementById('resultMessage').textContent = message;
+
+            let details = '';
+            testAnswers.forEach((answer, idx) => {
+                const resultClass = answer.correct ? 'result-correct' : 'result-incorrect';
+                details += `<div class="result-item ${resultClass}">
+                    Q${idx + 1}: ${answer.question} - ${answer.correct ? '✓ Correct' : '✗ ' + answer.detected}
+                </div>`;
+            });
+
+            document.getElementById('resultDetails').innerHTML = details;
+        }
+
+        function restartTest() {
+            document.getElementById('testMenu').style.display = 'block';
+            document.getElementById('testResults').style.display = 'none';
+        }
+
+        // Initialize
+        selectCategory('letters');
+    </script>
+</body>
+</html>
